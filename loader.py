@@ -39,18 +39,15 @@ def load_instances(f):
                     instances[lemma_id] = WSDInstance(lemma_id, sent_id, lemma, context, ind)
     return instances
 
+def get_labels(LABEL_FILE):
+  """
+  Reads the labels/annotations of the lemmas and returns in dictionary form
+  """
+  labels = {}
+  for line in open(LABEL_FILE):
+    if len(line) <= 1: continue
+    lemma_id_label = line.strip().split(" ")
 
-def load_key(f):
-    '''
-    Load the solutions as dicts.
-    Key is the id
-    Value is the list of correct sense keys.
-    '''
-    keys = {}
-    for line in open(f):
-        if len(line) <= 1: continue
-        lemma_id_label = line.strip().split(" ")
+    labels[lemma_id_label[0]] = lemma_id_label[1:]
 
-        keys[lemma_id_label[0]] = lemma_id_label[1:]
-
-    return keys
+  return labels
