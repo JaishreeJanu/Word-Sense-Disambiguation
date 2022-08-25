@@ -16,6 +16,11 @@ import gensim.downloader as api
 
 SEMCOR_DATA_FILE = './semcor/semcor.data.xml'
 SEMCOR_LABELLED = './semcor/semcor.gold.key.txt'
+SENSEVAL_2_DATA_FILE = './senseval2/senseval2.data.xml'
+SENSEVAL_2_LABELLED = './senseval2/senseval2.gold.key.txt'
+SENSEVAL_3_DATA_FILE = './senseval3/senseval3.data.xml'
+SENSEVAL_3_LABELLED = './senseval3/senseval3.gold.key.txt'
+
 word_embeddings = api.load('word2vec-google-news-300')
 
 def get_embed(lst_strings):
@@ -38,11 +43,8 @@ def train_dist_lesk(lemmas, mapping_dict, word_embeds, lexeme_embeds, synset_emb
     Trains the distributional lesk algorithm with semcor dataset
     The crucial part of the algorithm is to replace word_embeds with synset_embeds for the words
     which have been disambiguated.
-    SORTING OF THE AMBIGUATED WORDS !!!
     """
     ## Filter the lemmas which have more than one synset in their definitions -- done
-
-    ## Create dictionary of the synsets/synset keys of these lemmas -- not required
 
     for lemma_id, wsd_inst in lemmas.items():
         if len(wn.synsets(wsd_inst.lemma)) <= 1:
@@ -53,7 +55,7 @@ def train_dist_lesk(lemmas, mapping_dict, word_embeds, lexeme_embeds, synset_emb
         final_synset_keys = ''
         final_wn_synset_id = ''
         for synset in wn.synsets(wsd_inst.lemma):
-            ## Computations for this synset, lemma pair
+            ## Computations for this synset-lemma pair
             ## Get the gloss embeds
             gloss_embed = get_embed(synset.definition())
             this_synset_key = ''
@@ -71,13 +73,14 @@ def train_dist_lesk(lemmas, mapping_dict, word_embeds, lexeme_embeds, synset_emb
                 score = np.dot(lexeme_embed, context_embed) / (norm(lexeme_embed) * norm(context_embed)) + \
                         np.dot(gloss_embed, context_embed) / (norm(gloss_embed) * norm(context_embed))
 
+                ## Write the code for finding the maximum score
                 if score > final_score:
                     final_score = score
                     final_synset_keys = this_synset_key
                     final_wn_synset_id = wn_synset_id
             except:
                 pass
-        ## Write the code for finding the maximum score
+
         print("The maximum score is:", final_score)
         print("The predicted synset keys are:", final_synset_keys)
         ## Then updating the word embeds with the synset embeds
@@ -148,6 +151,12 @@ if __name__ == '__main__':
     semcor_lemmas = load_instances(SEMCOR_DATA_FILE)
     semcor_labels = get_labels(SEMCOR_LABELLED)
 
+    senseval_2_lemmas = load_instances(SENSEVAL_2_DATA_FILE)
+    senseval_2_labels = get_labels(SENSEVAL_2_LABELLED)
+
+    senseval_3_lemmas = load_instances(SENSEVAL_3_DATA_FILE)
+    senseval_3_labels = get_labels(SENSEVAL_3_LABELLED)
+
     ## Driver code for distributional lesk
     ## Select 5000 sentences
     semcor_5000_lemmas = get_semcor_data(semcor_lemmas)
@@ -155,6 +164,15 @@ if __name__ == '__main__':
     lexeme_embeds = read_lexeme_embeds()
     synset_embeds = read_synset_embeds()
 
+    ## The word embeddings are updated with the train data -- 5000 semcor sentences
     word_embeddings = train_dist_lesk(semcor_5000_lemmas, mapping_dict, word_embeddings, lexeme_embeds, synset_embeds)
-    accuracy = eval_dist_lesk(semcor_5000_lemmas, semcor_labels, mapping_dict, lexeme_embeds)
-    print("Dist_lesk accuracy:", accuracy)
+
+    ## Driver code for evaluation of distributional lesk
+    sem_accuracy = eval_dist_lesk(semcor_lemmas, semcor_labels, mapping_dict, lexeme_embeds)
+    print("Dist_lesk accuracy on Semcor:", sem_accuracy)
+
+    senseval_2_accuracy = eval_dist_lesk(senseval_2_lemmas, senseval_2_labels, mapping_dict, lexeme_embeds)
+    print("Dist_lesk accuracy on Senseval_2:", senseval_2_accuracy)
+
+    senseval_3_accuracy = eval_dist_lesk(senseval_3_lemmas, senseval_3_labels, mapping_dict, lexeme_embeds)
+    print("Dist_lesk accuracy on Senseval_3:", senseval_3_accuracy)
