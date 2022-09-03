@@ -1,5 +1,4 @@
 ## Helper functions for creating dictionary variables to store senses, gloss vector and context vector
-from loader import *
 import numpy as np
 from nltk.corpus import wordnet as wn
 

@@ -13,6 +13,7 @@ import numpy as np
 from numpy.linalg import norm
 
 import gensim.downloader as api
+from tqdm import tqdm
 
 SEMCOR_DATA_FILE = './semcor/semcor.data.xml'
 SEMCOR_LABELLED = './semcor/semcor.gold.key.txt'
@@ -46,7 +47,7 @@ def train_dist_lesk(lemmas, mapping_dict, word_embeds, lexeme_embeds, synset_emb
     """
     ## Filter the lemmas which have more than one synset in their definitions -- done
 
-    for lemma_id, wsd_inst in lemmas.items():
+    for lemma_id, wsd_inst in tqdm(lemmas.items()):
         if len(wn.synsets(wsd_inst.lemma)) <= 1:
             continue
         ## Get the context embeds
@@ -107,7 +108,6 @@ def eval_dist_lesk(lemmas, labels, mapping_dict, lexeme_embeds):
         context_embed = get_embed(this_wsd_inst.context)
         final_score = 0
         final_synset_keys = ''
-        final_wn_synset_id = ''
         for synset in wn.synsets(this_wsd_inst.lemma):
             ## Computations for this synset, lemma pair
             ## Get the gloss embeds
@@ -130,7 +130,6 @@ def eval_dist_lesk(lemmas, labels, mapping_dict, lexeme_embeds):
                 if score > final_score:
                     final_score = score
                     final_synset_keys = this_synset_key
-                    final_wn_synset_id = wn_synset_id
             except:
                 pass
         ## Write the code for finding the maximum score
