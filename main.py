@@ -39,15 +39,14 @@ def get_embed(lst_strings):
 
   return embed
 
-def train_dist_lesk(lemmas, mapping_dict, word_embeds, lexeme_embeds, synset_embeds):
+def train_dist_lesk(lemmas, mapping_dict, lexeme_embeds, synset_embeds):
     """
     Trains the distributional lesk algorithm with semcor dataset
     The crucial part of the algorithm is to replace word_embeds with synset_embeds for the words
     which have been disambiguated.
     """
-    ## Filter the lemmas which have more than one synset in their definitions -- done
-
     for lemma_id, wsd_inst in tqdm(lemmas.items()):
+        ## Filter the lemmas which don't have more than one synset in their definitions
         if len(wn.synsets(wsd_inst.lemma)) <= 1:
             continue
         ## Get the context embeds
@@ -59,11 +58,12 @@ def train_dist_lesk(lemmas, mapping_dict, word_embeds, lexeme_embeds, synset_emb
             ## Computations for this synset-lemma pair
             ## Get the gloss embeds
             gloss_embed = get_embed(synset.definition())
+            ## This key is formed to get the lexeme embedding
             this_synset_key = ''
             for synset_lemma in synset.lemmas():
                 this_synset_key += synset_lemma.key()
                 this_synset_key += ','
-            this_synset_key = this_synset_key[:-1]  # Remove the last comma
+            #this_synset_key = this_synset_key[:-1]  # Remove the last comma
 
             ## Get the wn-id from mapping.txt and using above dictionary
             try:
@@ -84,14 +84,14 @@ def train_dist_lesk(lemmas, mapping_dict, word_embeds, lexeme_embeds, synset_emb
 
         print("The maximum score is:", final_score)
         print("The predicted synset keys are:", final_synset_keys)
-        ## Then updating the word embeds with the synset embeds
+        ## The disambiguated lemma is updated with the synset embedding
         try:
-            word_embeds[wsd_inst.lemma] = synset_embeds[final_wn_synset_id]
+            word_embeddings[wsd_inst.lemma] = synset_embeds[final_wn_synset_id]
             print("-----------------SUCCCCESSSSSS----------------------")
         except:
             pass
 
-    return word_embeds
+    return
 
 
 def eval_dist_lesk(lemmas, labels, mapping_dict, lexeme_embeds):
@@ -147,6 +147,7 @@ def eval_dist_lesk(lemmas, labels, mapping_dict, lexeme_embeds):
     return (correct_count / total) * 100
 
 if __name__ == '__main__':
+    ## Lemmas are returned in key, value where key is lemma_id and value is WSDInstance (lemma_id, sentence_id, lemma, context, index)
     semcor_lemmas = load_instances(SEMCOR_DATA_FILE)
     semcor_labels = get_labels(SEMCOR_LABELLED)
 
@@ -164,7 +165,10 @@ if __name__ == '__main__':
     synset_embeds = read_synset_embeds()
 
     ## The word embeddings are updated with the train data -- 5000 semcor sentences
-    word_embeddings = train_dist_lesk(semcor_5000_lemmas, mapping_dict, word_embeddings, lexeme_embeds, synset_embeds)
+    train_dist_lesk(semcor_5000_lemmas, mapping_dict, lexeme_embeds, synset_embeds)
+
+    all_embeddings = np.array(word_embeddings)
+    np.save('dist_word_embeddings.npy', all_embeddings)
 
     ## Driver code for evaluation of distributional lesk
     sem_accuracy = eval_dist_lesk(semcor_lemmas, semcor_labels, mapping_dict, lexeme_embeds)
