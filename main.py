@@ -116,7 +116,7 @@ def eval_dist_lesk(lemmas, labels, mapping_dict, lexeme_embeds):
             for synset_lemma in synset.lemmas():
                 this_synset_key += synset_lemma.key()
                 this_synset_key += ','
-            this_synset_key = this_synset_key[:-1]  # Remove the last comma
+            #this_synset_key = this_synset_key[:-1]  # Remove the last comma
 
             ## Get the wn-id from mapping.txt and using above dictionary
             try:
