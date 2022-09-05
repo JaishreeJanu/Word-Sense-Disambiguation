@@ -3,6 +3,7 @@
 import nltk
 nltk.download('wordnet')
 nltk.download('omw-1.4')
+from nltk.corpus import stopwords
 from nltk.corpus import wordnet as wn
 
 from loader import *
@@ -15,20 +16,22 @@ from numpy.linalg import norm
 import gensim.downloader as api
 from tqdm import tqdm
 
-SEMCOR_DATA_FILE = './semcor/semcor.data.xml'
-SEMCOR_LABELLED = './semcor/semcor.gold.key.txt'
+SEMCOR_DATA_FILE = './semCor/semcor.data.xml'
+SEMCOR_LABELLED = './semCor/semcor.gold.key.txt'
 SENSEVAL_2_DATA_FILE = './senseval2/senseval2.data.xml'
 SENSEVAL_2_LABELLED = './senseval2/senseval2.gold.key.txt'
 SENSEVAL_3_DATA_FILE = './senseval3/senseval3.data.xml'
 SENSEVAL_3_LABELLED = './senseval3/senseval3.gold.key.txt'
 
 word_embeddings = api.load('word2vec-google-news-300')
+StopWords = stopwords.words("english")
 
 def get_embed(lst_strings):
   """
   Returns the embedding for the given list of strings --
   average of the word embeddings of each word in the list
   """
+  lst_strings = remove_stopwords(lst_strings)
   vectors_strings = []
   for word in lst_strings:
     try:
@@ -38,6 +41,16 @@ def get_embed(lst_strings):
   embed = np.mean(vectors_strings, axis=0)
 
   return embed
+
+def remove_stopwords(lst_strings):
+    """
+    Remove the stopwords from the list of strings
+    :param lst_strings:
+    :return:
+    """
+    lst_strings = [word for word in lst_strings if word not in StopWords]
+    return lst_strings
+
 
 def train_dist_lesk(lemmas, mapping_dict, lexeme_embeds, synset_embeds):
     """
@@ -57,7 +70,7 @@ def train_dist_lesk(lemmas, mapping_dict, lexeme_embeds, synset_embeds):
         for synset in wn.synsets(wsd_inst.lemma):
             ## Computations for this synset-lemma pair
             ## Get the gloss embeds
-            gloss_embed = get_embed(synset.definition())
+            gloss_embed = get_embed(synset.definition().split(" "))
             ## This key is formed to get the lexeme embedding
             this_synset_key = ''
             for synset_lemma in synset.lemmas():
@@ -101,7 +114,7 @@ def eval_dist_lesk(lemmas, labels, mapping_dict, lexeme_embeds):
     correct_count = 0
     total = len(labels)
 
-    for lemma_id, lemma_label in labels.items():
+    for lemma_id, lemma_label in tqdm(labels.items()):
         this_wsd_inst = lemmas[lemma_id]
 
         ## Get the context embeds
@@ -111,7 +124,8 @@ def eval_dist_lesk(lemmas, labels, mapping_dict, lexeme_embeds):
         for synset in wn.synsets(this_wsd_inst.lemma):
             ## Computations for this synset, lemma pair
             ## Get the gloss embeds
-            gloss_embed = get_embed(synset.definition())
+            gloss_embed = get_embed(synset.definition().split(" "))
+            exit()
             this_synset_key = ''
             for synset_lemma in synset.lemmas():
                 this_synset_key += synset_lemma.key()
@@ -174,8 +188,8 @@ if __name__ == '__main__':
     sem_accuracy = eval_dist_lesk(semcor_lemmas, semcor_labels, mapping_dict, lexeme_embeds)
     print("Dist_lesk accuracy on Semcor:", sem_accuracy)
 
-    senseval_2_accuracy = eval_dist_lesk(senseval_2_lemmas, senseval_2_labels, mapping_dict, lexeme_embeds)
-    print("Dist_lesk accuracy on Senseval_2:", senseval_2_accuracy)
+    #senseval_2_accuracy = eval_dist_lesk(senseval_2_lemmas, senseval_2_labels, mapping_dict, lexeme_embeds)
+    #print("Dist_lesk accuracy on Senseval_2:", senseval_2_accuracy)
 
-    senseval_3_accuracy = eval_dist_lesk(senseval_3_lemmas, senseval_3_labels, mapping_dict, lexeme_embeds)
-    print("Dist_lesk accuracy on Senseval_3:", senseval_3_accuracy)
+    #senseval_3_accuracy = eval_dist_lesk(senseval_3_lemmas, senseval_3_labels, mapping_dict, lexeme_embeds)
+    #print("Dist_lesk accuracy on Senseval_3:", senseval_3_accuracy)
