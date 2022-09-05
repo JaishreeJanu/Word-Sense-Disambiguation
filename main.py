@@ -24,6 +24,7 @@ SENSEVAL_3_DATA_FILE = './senseval3/senseval3.data.xml'
 SENSEVAL_3_LABELLED = './senseval3/senseval3.gold.key.txt'
 
 word_embeddings = api.load('word2vec-google-news-300')
+#word_embeddings = np.load('embeddings.npy')
 StopWords = stopwords.words("english")
 
 def get_embed(lst_strings):
