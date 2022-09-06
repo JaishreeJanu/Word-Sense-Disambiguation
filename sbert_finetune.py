@@ -1,4 +1,8 @@
-### Fine tuning sbert and evluating distributional lesk on sbert sentence embeddings
+"""
+Fine tuning sbert and evluating distributional lesk on sbert sentence embeddings
+NOTE: Distributional lesk is not trained with synset embeddings. Only sbert embeddings are used for the evaluations.
+"""
+
 from loader import *
 from dict_utilities import *
 from helper import *
@@ -20,12 +24,12 @@ nltk.download('omw-1.4')
 from nltk.corpus import wordnet as wn
 from numpy.linalg import norm
 
-SEMCOR_DATA_FILE = 'SemCor/semcor.data.xml'
-SEMCOR_LABELLED = 'SemCor/semcor.gold.key.txt'
-SENSEVAL_2_DATA_FILE = './senseval2/senseval2.data.xml'
-SENSEVAL_2_LABELLED = './senseval2/senseval2.gold.key.txt'
-SENSEVAL_3_DATA_FILE = './senseval3/senseval3.data.xml'
-SENSEVAL_3_LABELLED = './senseval3/senseval3.gold.key.txt'
+SEMCOR_DATA_FILE = './WSD_Unified_Evaluation_Datasets/SemCor/semcor.data.xml'
+SEMCOR_LABELLED = './WSD_Unified_Evaluation_Datasets/SemCor/semcor.gold.key.txt'
+SENSEVAL_2_DATA_FILE = './WSD_Unified_Evaluation_Datasets/senseval2/senseval2.data.xml'
+SENSEVAL_2_LABELLED = './WSD_Unified_Evaluation_Datasets/senseval2/senseval2.gold.key.txt'
+SENSEVAL_3_DATA_FILE = './WSD_Unified_Evaluation_Datasets/senseval3/senseval3.data.xml'
+SENSEVAL_3_LABELLED = './WSD_Unified_Evaluation_Datasets/senseval3/senseval3.gold.key.txt'
 
 ## Just test sentences
 context = 'Influential people are more important.'
@@ -136,7 +140,7 @@ def eval_sbert(lemmas, labels, model, mapping_dict, lexeme_embeds):
             for synset_lemma in synset.lemmas():
                 this_synset_key += synset_lemma.key()
                 this_synset_key += ','
-            #this_synset_key = this_synset_key[:-1]  # Remove the last comma
+            this_synset_key = this_synset_key[:-1]  # Remove the last comma
 
             try:
                 ## Get the wn-id from mapping.txt and using above dictionary
@@ -178,12 +182,11 @@ if __name__ == '__main__':
     senseval_3_lemmas = load_instances(SENSEVAL_3_DATA_FILE)
     senseval_3_labels = get_labels(SENSEVAL_3_LABELLED)
 
-    semcor_2500_lemmas = get_semcor_data(semcor_lemmas)
     ## Get the PCA trained model
     model = train_pca(new_dimension=300) ## SInce the lexeme embeddings are 300-dimensional
 
     ## Train the model
-    model = train_sbert(senseval_2_lemmas, senseval_2_labels, model)
+    model = train_sbert(senseval_3_lemmas, senseval_3_labels, model)
 
     ## Load the saved model
     model = SentenceTransformer('./bert_multi_mini/')
@@ -200,13 +203,15 @@ if __name__ == '__main__':
     lexeme_embeds = read_lexeme_embeds()
     #synset_embeds = read_synset_embeds()
 
-    #sem_accuracy = eval_sbert(semcor_lemmas, semcor_labels, model, mapping_dict, lexeme_embeds)
-    #print("Dist_sbert_lesk accuracy on Semcor:", sem_accuracy)
+    ## SLicing the semcor lemmas, take initial 5000 only
+    semcor_labels = dict(list(semcor_labels.items())[:5000])
+    sem_accuracy = eval_sbert(semcor_lemmas, semcor_labels, model, mapping_dict, lexeme_embeds)
+    print("Dist_sbert_lesk accuracy on Semcor:", sem_accuracy)
 
     senseval_2_accuracy = eval_sbert(senseval_2_lemmas, senseval_2_labels, model, mapping_dict, lexeme_embeds)
     print("Dist_lesk accuracy on Senseval_2:", senseval_2_accuracy)
 
-    #senseval_3_accuracy = eval_sbert(senseval_3_lemmas, senseval_3_labels, model, mapping_dict, lexeme_embeds)
-    #print("Dist_lesk accuracy on Senseval_3:", senseval_3_accuracy)
+    senseval_3_accuracy = eval_sbert(senseval_3_lemmas, senseval_3_labels, model, mapping_dict, lexeme_embeds)
+    print("Dist_lesk accuracy on Senseval_3:", senseval_3_accuracy)
 
 

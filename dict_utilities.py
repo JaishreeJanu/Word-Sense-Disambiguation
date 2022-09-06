@@ -4,8 +4,8 @@ from nltk.corpus import wordnet as wn
 
 def get_semcor_data(lemmas):
     '''
-    Reads Semcor data and selects first 5000 sentences (changed to 2500) from it
-    :return: returns dictionary of 5000 sentences (changed to 2500) in form key: lemma_id, value:  WSDInstance
+    Reads Semcor data and selects first 5000 sentences from it
+    :return: returns dictionary of 5000 sentences in form key: lemma_id, value:  WSDInstance
     '''
 
     ## Inefficient code: for loops !!!
@@ -20,7 +20,7 @@ def get_semcor_data(lemmas):
             curr_sent = value.sent_id
             sent_count += 1
 
-        if sent_count >= 2500:
+        if sent_count >= 5000:
             break
 
     return selected_lemmas

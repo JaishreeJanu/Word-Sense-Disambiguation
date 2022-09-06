@@ -158,7 +158,10 @@ if __name__ == '__main__':
     pk.dump(pca_trained, open("pca_trained.pkl", "wb"))
     pca_trained = pk.load(open("pca_trained.pkl", 'rb'))
 
-    senseval_2_acc = eval_dist_flair(senseval_3_lemmas, senseval_3_labels, mapping_dict, lexeme_embeds, pca_trained)
+    senseval_3_acc = eval_dist_flair(senseval_3_lemmas, senseval_3_labels, mapping_dict, lexeme_embeds, pca_trained)
+    print("Accuracy:: ", senseval_3_acc)
+
+    senseval_2_acc = eval_dist_flair(senseval_2_lemmas, senseval_2_labels, mapping_dict, lexeme_embeds, pca_trained)
     print("Accuracy:: ", senseval_2_acc)
 
 

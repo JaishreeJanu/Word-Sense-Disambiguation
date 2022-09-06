@@ -5,6 +5,7 @@ nltk.download('wordnet')
 nltk.download('omw-1.4')
 from nltk.corpus import stopwords
 from nltk.corpus import wordnet as wn
+from gensim.models import KeyedVectors
 
 from loader import *
 from dict_utilities import *
@@ -173,31 +174,23 @@ if __name__ == '__main__':
     senseval_3_labels = get_labels(SENSEVAL_3_LABELLED)
 
     ## Driver code for distributional lesk
-    ## Select 2500 sentences
-    semcor_2500_lemmas = get_semcor_data(semcor_lemmas)
+    ## Select 5000 sentences
+    semcor_5000_lemmas = get_semcor_data(semcor_lemmas)
     mapping_dict = read_mapping()
     lexeme_embeds = read_lexeme_embeds()
     synset_embeds = read_synset_embeds()
 
     ## The word embeddings are updated with the train data -- 5000 semcor sentences
-    train_dist_lesk(semcor_2500_lemmas, mapping_dict, lexeme_embeds, synset_embeds)
+    train_dist_lesk(semcor_5000_lemmas, mapping_dict, lexeme_embeds, synset_embeds)
 
-    ## Dump word embeddings to json format
-    with open("trained_embeds.json", "w+") as json_file:
-        json.dump(word_embeddings, json_file)
-
-    #all_embeddings = np.array(word_embeddings)
-    #np.save('dist_word_embeddings.npy', all_embeddings)
-
-    ## Load json and evaluate on all three datasets
-    with open('trained_embeds.json') as json_file:
-        word_embeddings = json.load(json_file)
+    word_embeddings.save("word_embeddings.kv")
+    word_embeddings = KeyedVectors.load("temp_embeddings.kv")
     ## Driver code for evaluation of distributional lesk
-    #sem_accuracy = eval_dist_lesk(semcor_lemmas, semcor_labels, mapping_dict, lexeme_embeds)
-    #print("Dist_lesk accuracy on Semcor:", sem_accuracy)
+    sem_accuracy = eval_dist_lesk(semcor_lemmas, semcor_labels, mapping_dict, lexeme_embeds)
+    print("Dist_lesk accuracy on Semcor:", sem_accuracy)
 
     senseval_2_accuracy = eval_dist_lesk(senseval_2_lemmas, senseval_2_labels, mapping_dict, lexeme_embeds)
     print("Dist_lesk accuracy on Senseval_2:", senseval_2_accuracy)
 
-    #senseval_3_accuracy = eval_dist_lesk(senseval_3_lemmas, senseval_3_labels, mapping_dict, lexeme_embeds)
-    #print("Dist_lesk accuracy on Senseval_3:", senseval_3_accuracy)
+    senseval_3_accuracy = eval_dist_lesk(senseval_3_lemmas, senseval_3_labels, mapping_dict, lexeme_embeds)
+    print("Dist_lesk accuracy on Senseval_3:", senseval_3_accuracy)
