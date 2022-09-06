@@ -1,4 +1,4 @@
-### Driver code for distributional lesk
+### Driver code for distributional lesk with removing stopwords from context and gloss
 
 import nltk
 nltk.download('wordnet')
@@ -12,6 +12,7 @@ from helper import *
 
 import numpy as np
 from numpy.linalg import norm
+import json
 
 import gensim.downloader as api
 from tqdm import tqdm
@@ -24,7 +25,7 @@ SENSEVAL_3_DATA_FILE = './senseval3/senseval3.data.xml'
 SENSEVAL_3_LABELLED = './senseval3/senseval3.gold.key.txt'
 
 word_embeddings = api.load('word2vec-google-news-300')
-#word_embeddings = np.load('embeddings.npy')
+#word_embeddings = np.load('embeddings.npy', allow_pickle=True)
 StopWords = stopwords.words("english")
 
 def get_embed(lst_strings):
@@ -77,7 +78,7 @@ def train_dist_lesk(lemmas, mapping_dict, lexeme_embeds, synset_embeds):
             for synset_lemma in synset.lemmas():
                 this_synset_key += synset_lemma.key()
                 this_synset_key += ','
-            #this_synset_key = this_synset_key[:-1]  # Remove the last comma
+            this_synset_key = this_synset_key[:-1]  # Remove the last comma
 
             ## Get the wn-id from mapping.txt and using above dictionary
             try:
@@ -126,12 +127,11 @@ def eval_dist_lesk(lemmas, labels, mapping_dict, lexeme_embeds):
             ## Computations for this synset, lemma pair
             ## Get the gloss embeds
             gloss_embed = get_embed(synset.definition().split(" "))
-            exit()
             this_synset_key = ''
             for synset_lemma in synset.lemmas():
                 this_synset_key += synset_lemma.key()
                 this_synset_key += ','
-            #this_synset_key = this_synset_key[:-1]  # Remove the last comma
+            this_synset_key = this_synset_key[:-1]  # Remove the last comma
 
             ## Get the wn-id from mapping.txt and using above dictionary
             try:
@@ -173,24 +173,31 @@ if __name__ == '__main__':
     senseval_3_labels = get_labels(SENSEVAL_3_LABELLED)
 
     ## Driver code for distributional lesk
-    ## Select 5000 sentences
-    semcor_5000_lemmas = get_semcor_data(semcor_lemmas)
+    ## Select 2500 sentences
+    semcor_2500_lemmas = get_semcor_data(semcor_lemmas)
     mapping_dict = read_mapping()
     lexeme_embeds = read_lexeme_embeds()
     synset_embeds = read_synset_embeds()
 
     ## The word embeddings are updated with the train data -- 5000 semcor sentences
-    train_dist_lesk(semcor_5000_lemmas, mapping_dict, lexeme_embeds, synset_embeds)
+    train_dist_lesk(semcor_2500_lemmas, mapping_dict, lexeme_embeds, synset_embeds)
 
-    all_embeddings = np.array(word_embeddings)
-    np.save('dist_word_embeddings.npy', all_embeddings)
+    ## Dump word embeddings to json format
+    with open("trained_embeds.json", "w+") as json_file:
+        json.dump(word_embeddings, json_file)
 
+    #all_embeddings = np.array(word_embeddings)
+    #np.save('dist_word_embeddings.npy', all_embeddings)
+
+    ## Load json and evaluate on all three datasets
+    with open('trained_embeds.json') as json_file:
+        word_embeddings = json.load(json_file)
     ## Driver code for evaluation of distributional lesk
-    sem_accuracy = eval_dist_lesk(semcor_lemmas, semcor_labels, mapping_dict, lexeme_embeds)
-    print("Dist_lesk accuracy on Semcor:", sem_accuracy)
+    #sem_accuracy = eval_dist_lesk(semcor_lemmas, semcor_labels, mapping_dict, lexeme_embeds)
+    #print("Dist_lesk accuracy on Semcor:", sem_accuracy)
 
-    #senseval_2_accuracy = eval_dist_lesk(senseval_2_lemmas, senseval_2_labels, mapping_dict, lexeme_embeds)
-    #print("Dist_lesk accuracy on Senseval_2:", senseval_2_accuracy)
+    senseval_2_accuracy = eval_dist_lesk(senseval_2_lemmas, senseval_2_labels, mapping_dict, lexeme_embeds)
+    print("Dist_lesk accuracy on Senseval_2:", senseval_2_accuracy)
 
     #senseval_3_accuracy = eval_dist_lesk(senseval_3_lemmas, senseval_3_labels, mapping_dict, lexeme_embeds)
     #print("Dist_lesk accuracy on Senseval_3:", senseval_3_accuracy)

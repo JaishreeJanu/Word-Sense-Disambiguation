@@ -15,7 +15,7 @@ def read_mapping():
     for line in open(file = 'embeddings/mapping.txt'):
         if len(line.strip().split(' ')) < 2: continue
         wn_synset_id, synsets_keys = line.strip().split(' ')
-        mapping_dict[synsets_keys] = wn_synset_id
+        mapping_dict[synsets_keys[:-1]] = wn_synset_id
 
     return mapping_dict
 

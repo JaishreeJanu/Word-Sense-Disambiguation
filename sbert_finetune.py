@@ -8,6 +8,7 @@ import csv
 import random
 import torch
 import os
+from tqdm import tqdm
 
 from sentence_transformers import SentenceTransformer, InputExample, losses, util, models
 from torch.utils.data import DataLoader
@@ -83,11 +84,11 @@ def train_pca(new_dimension):
 
 def train_sbert(lemmas, labels, model):
     """
-    Fine tune the sbert model on 5000 semcor sentences
+    Fine tune the sbert model on the given dataset in lemmas
     """
     train_examples = []
 
-    for lemma_id, wsd_inst in lemmas.items():
+    for lemma_id, wsd_inst in tqdm(lemmas.items()):
         label_key = labels[lemma_id][0]
         lemma = wsd_inst.lemma
         context = wsd_inst.context
@@ -95,10 +96,10 @@ def train_sbert(lemmas, labels, model):
         for synset in wn.synsets(lemma):
             if wn.lemma_from_key(label_key).synset() == synset:
                 correct_gloss = synset.definition()
-                train_examples += [InputExample(texts=[context, correct_gloss], label=0.95)]
+                train_examples += [InputExample(texts=[context, correct_gloss], label=0.95)] ## High similarity indicator as it is correct synset for the lemma
             else:
                 incorrect_gloss = synset.definition()
-                train_examples += [InputExample(texts=[context, incorrect_gloss], label=0.15)]
+                train_examples += [InputExample(texts=[context, incorrect_gloss], label=0.15)] ## Low similarity indicator for other glosses
 
         #train_examples += [InputExample(texts=[context, gloss], label=0.95),
                            #InputExample(texts=[context, gloss_opposite], label=0.25)]
@@ -120,7 +121,7 @@ def eval_sbert(lemmas, labels, model, mapping_dict, lexeme_embeds):
     correct_count = 0
     total = len(labels)
 
-    for lemma_id, lemma_label in labels.items():
+    for lemma_id, lemma_label in tqdm(labels.items()):
         this_wsd_inst = lemmas[lemma_id]
 
         ## Get the context embeds
@@ -177,7 +178,7 @@ if __name__ == '__main__':
     senseval_3_lemmas = load_instances(SENSEVAL_3_DATA_FILE)
     senseval_3_labels = get_labels(SENSEVAL_3_LABELLED)
 
-    semcor_5000_lemmas = get_semcor_data(semcor_lemmas)
+    semcor_2500_lemmas = get_semcor_data(semcor_lemmas)
     ## Get the PCA trained model
     model = train_pca(new_dimension=300) ## SInce the lexeme embeddings are 300-dimensional
 
