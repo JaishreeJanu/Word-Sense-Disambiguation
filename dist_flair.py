@@ -112,7 +112,6 @@ def eval_dist_flair(lemmas, labels, mapping_dict, lexeme_embeds, pca_trained):
             #print(this_synset_key)
             ## Get the wn-id from mapping.txt and using above dictionary
             try:
-                print(this_synset_key)
                 wn_synset_id = mapping_dict[this_synset_key]
                 #wn_synset_id = 'wn-2.1-01953472-a'
                 ## Get the lexeme embeds using wn_id
@@ -160,8 +159,7 @@ if __name__ == '__main__':
     pca_trained = pk.load(open("pca_trained.pkl", 'rb'))
 
     senseval_2_acc = eval_dist_flair(senseval_3_lemmas, senseval_3_labels, mapping_dict, lexeme_embeds, pca_trained)
-
-    #print("Accuracy:: ", senseval_2_acc)
+    print("Accuracy:: ", senseval_2_acc)
 
 
 
