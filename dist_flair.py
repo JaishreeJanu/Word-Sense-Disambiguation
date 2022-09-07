@@ -11,6 +11,8 @@ import pickle as pk
 
 from loader import *
 from helper import *
+from dict_utilities import *
+
 from flair.embeddings import WordEmbeddings, FlairEmbeddings, StackedEmbeddings
 from sklearn.decomposition import PCA
 from flair.data import Sentence
@@ -66,7 +68,7 @@ def train_pca(senseval_2_lemmas, new_dim = 300):
     """
     Train PCA model to transform flair embeddings to 300-dimensional
     """
-    senseval_2_lemmas = dict(list(senseval_2_lemmas.items())[:400]) ## Only selected 400 examples
+    senseval_2_lemmas = dict(list(senseval_2_lemmas.items())[:1000]) ## Only selected 400 examples
 
     stacked_embeddings = def_flair_embed()
     ## Get the training examples for PCA
@@ -79,7 +81,7 @@ def train_pca(senseval_2_lemmas, new_dim = 300):
             pca_train_embeds.append(token.embedding.numpy())
 
     pca_train_embeds = np.asarray(pca_train_embeds)
-    ## train PCA on 300-dim since we have lexeme embeds in 300-dim
+    ## train PCA for mapping 4096-dim to 300-dim componenets, since we have lexeme embeds in 300-dim
     pca = PCA(n_components=new_dim)
     pca.fit(pca_train_embeds)
 
@@ -92,77 +94,79 @@ def eval_dist_flair(lemmas, labels, mapping_dict, lexeme_embeds, pca_trained):
     correct_count = 0
     total = len(labels)
 
-    for lemma_id, lemma_label in tqdm(labels.items()):
+    for lemma_id, lemma_label in tqdm(dict(list(labels.items())[:500]).items()):
         this_wsd_inst = lemmas[lemma_id]
 
         ## Get the context embeds
         context_embed = get_flair_embed(this_wsd_inst.context, pca_trained)
         final_score = 0
-        final_synset_keys = ''
-        for synset in wn.synsets(this_wsd_inst.lemma):
+        final_synset = this_wsd_inst.lemma[0]
+        final_wn_synset_id = ''
+        for this_synset in wn.synsets(this_wsd_inst.lemma):
             ## Computations for this synset, lemma pair
             ## Get the gloss embeds
-            gloss_embed = get_flair_embed(synset.definition().split(" "), pca_trained)
-            this_synset_key = ''
-            for synset_lemma in synset.lemmas():
-                this_synset_key += synset_lemma.key()
-                this_synset_key += ','
-            this_synset_key = this_synset_key[:-1]  # Remove the last comma
+            gloss_embed = get_flair_embed(this_synset.definition().split(" "), pca_trained)
+            wn_synset_id = ''
+            for synset_lemma in this_synset.lemmas():
+                this_synset_key = synset_lemma.key()
+                if this_synset_key in mapping_dict.keys():
+                    wn_synset_id = mapping_dict[this_synset_key]
+                    break
 
-            #print(this_synset_key)
             ## Get the wn-id from mapping.txt and using above dictionary
-            try:
-                wn_synset_id = mapping_dict[this_synset_key]
-                #wn_synset_id = 'wn-2.1-01953472-a'
+            if wn_synset_id != '':
                 ## Get the lexeme embeds using wn_id
-                lexeme_embed = lexeme_embeds[wn_synset_id]
-                ## Find similarity score for each word, sense pair
-                score = np.dot(lexeme_embed, context_embed) / (norm(lexeme_embed) * norm(context_embed)) + \
-                        np.dot(gloss_embed, context_embed) / (norm(gloss_embed) * norm(context_embed))
+                if wn_synset_id in lexeme_embeds.keys():
+                    lexeme_embed = lexeme_embeds[wn_synset_id]
+                    ## Find similarity score for each word, sense pair
+                    score = np.dot(lexeme_embed, context_embed) / (norm(lexeme_embed) * norm(context_embed)) + \
+                            np.dot(gloss_embed, context_embed) / (norm(gloss_embed) * norm(context_embed))
+                else:
+                    ## If no lexeme available then simply take the similarity of gloss and context
+                    score = np.dot(gloss_embed, context_embed) / (norm(gloss_embed) * norm(context_embed))
 
+                ## Write the code for finding the maximum score
+                try:
+                    if score > final_score:
+                        final_score = score
+                        final_wn_synset_id = wn_synset_id
+                        final_synset = this_synset
+                except:
+                    print("THE SCORE IS NAN  **********************************")
 
-                if score > final_score:
-                    final_score = score
-                    final_synset_keys = this_synset_key
-
-            except: pass
-
-        ## Write the code for finding the maximum score
         print("The maximum score is:", final_score)
-        print("The predicted synset keys are:", final_synset_keys)
+        print("THE FINAL PREDICTED SYNSET IS: ", final_synset)
 
+        ## Call the eval function for finding accuracy
         correct_label = labels[lemma_id][0]
-        pred_label = final_synset_keys.split(',')
-
-        for prediction in pred_label:
-            if correct_label == prediction:
-                correct_count += 1
-                break
+        if eval_acc(final_synset, correct_label):
+            correct_count += 1
 
     return (correct_count / total) * 100
 
 if __name__ == '__main__':
-    semcor_lemmas = load_instances(SEMCOR_DATA_FILE)
+    semcor_lemmas = sort_lemmas(load_instances(SEMCOR_DATA_FILE))
     semcor_labels = get_labels(SEMCOR_LABELLED)
 
-    senseval_2_lemmas = load_instances(SENSEVAL_2_DATA_FILE)
+    senseval_2_lemmas = sort_lemmas(load_instances(SENSEVAL_2_DATA_FILE))
     senseval_2_labels = get_labels(SENSEVAL_2_LABELLED)
 
-    senseval_3_lemmas = load_instances(SENSEVAL_3_DATA_FILE)
+    senseval_3_lemmas = sort_lemmas(load_instances(SENSEVAL_3_DATA_FILE))
     senseval_3_labels = get_labels(SENSEVAL_3_LABELLED)
 
     mapping_dict = read_mapping()
     lexeme_embeds = read_lexeme_embeds()
 
-    pca_trained = train_pca(senseval_2_lemmas)
-    pk.dump(pca_trained, open("pca_trained.pkl", "wb"))
+    #pca_trained = train_pca(senseval_2_lemmas)
+    #pk.dump(pca_trained, open("pca_trained.pkl", "wb"))
     pca_trained = pk.load(open("pca_trained.pkl", 'rb'))
+
+    #semcor_labels = dict(list(semcor_labels.items())[:2500])
+    #semcor_2_acc = eval_dist_flair(semcor_lemmas, semcor_labels, mapping_dict, lexeme_embeds, pca_trained)
+    #print("Accuracy:: ", semcor_2_acc)
+
+    #senseval_2_acc = eval_dist_flair(senseval_2_lemmas, senseval_2_labels, mapping_dict, lexeme_embeds, pca_trained)
+    #print("Accuracy:: ", senseval_2_acc)
 
     senseval_3_acc = eval_dist_flair(senseval_3_lemmas, senseval_3_labels, mapping_dict, lexeme_embeds, pca_trained)
     print("Accuracy:: ", senseval_3_acc)
-
-    senseval_2_acc = eval_dist_flair(senseval_2_lemmas, senseval_2_labels, mapping_dict, lexeme_embeds, pca_trained)
-    print("Accuracy:: ", senseval_2_acc)
-
-
-

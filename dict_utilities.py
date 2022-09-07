@@ -25,40 +25,29 @@ def get_semcor_data(lemmas):
 
     return selected_lemmas
 
-def get_word_embed(selected_lemmas, word_embeddings):
-    '''
-    ## word_embed_dict = {}, key: lemma_id, value: word_embedding
+
+def sort_lemmas(lemmas):
+    """
+    Sort lemmas based on their number of senses
+    :param lemmas:
     :return:
-    '''
-    word_embed_dict = {}
-    for key, value in selected_lemmas.items():
-        ## Since, word_embeddings not found for some words
-        this_lemma = value.lemma
-        try:
-            word_embed_dict[key] = word_embeddings[this_lemma]
-        except:
-            '''
-            Word embeddings not found for two-word phrases like: "for example", "go up", "blue collar", "coffee break", etc.
-            So, split these words and store their embeddings separately
-            '''
-            if len(this_lemma.split('-')) == 2:
-                lemma_1, lemma_2 = this_lemma.split('-')
-                try:
-                    word_embed_dict[key] = word_embeddings[lemma_1]
-                    word_embed_dict[key] = word_embeddings[lemma_1]
-                except:
-                    pass
+    """
+    print("SORTING THE LEMMAS BASED ON THEIR NUMBER OF SYNSETS")
+    sorted_lemmas = dict(sorted(lemmas.items(), key=lambda item: item[1].no_synsets))
+    return sorted_lemmas
 
-            elif len(this_lemma.split('_')) == 2:
-                lemma_1, lemma_2 = this_lemma.split('_')
-                try:
-                    word_embed_dict[key] = word_embeddings[lemma_1]
-                    word_embed_dict[key] = word_embeddings[lemma_1]
-                except:
-                    pass
 
-            else:
-                # print("Embedding cound not be found for: ", this_lemma)
-                pass
+def eval_acc(pred_synset, correct_label):
+    """
+    Checks if the prediction matches with the correct label
+    """
+    correct_bool = False
+    try:
+        for synset_lemma in pred_synset.lemmas():
+            if synset_lemma.key() == correct_label:
+                correct_bool = True
+                break
+    except:
+        print("The keys for the pred_synset could not be found !!!!!!!!!!!!!!!!!")
 
-    return word_embed_dict
+    return correct_bool
