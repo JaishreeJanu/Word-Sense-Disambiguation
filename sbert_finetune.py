@@ -181,9 +181,9 @@ if __name__ == '__main__':
 
     semcor_5000_lemmas = sort_lemmas(get_semcor_data(semcor_lemmas))
     ## Get the PCA trained model
-    #model = train_pca(new_dimension=300) ## SInce the lexeme embeddings are 300-dimensional
+    model = train_pca(new_dimension=300) ## SInce the lexeme embeddings are 300-dimensional
     ## Train the model
-    #model = train_sbert(senseval_2_lemmas, senseval_2_labels, model)
+    model = train_sbert(senseval_2_lemmas, senseval_2_labels, model)
 
 
     ## Load the saved model

@@ -1,15 +1,20 @@
 import xml.etree.cElementTree as ET
 import codecs
+import nltk
+nltk.download('wordnet')
+nltk.download('omw-1.4')
+from nltk.corpus import stopwords
+from nltk.corpus import wordnet as wn
 
 
 class WSDInstance:
-    def __init__(self, lemma_id, sent_id, lemma, context, index):
+    def __init__(self, lemma_id, sent_id, lemma, context, index, no_synsets):
         self.lemma_id = lemma_id  # id of the WSD instance
         self.sent_id = sent_id   # id of the sentence in which lemma occurs, helps to select 5000 sentences
         self.lemma = lemma  # lemma of the word whose sense is to be resolved
         self.context = context  # lemma of all the words in the sentence context
         self.index = index  # index of lemma within the sentence
-
+        self.no_synsets = no_synsets
     def __str__(self):
         '''
         For printing purposes.
@@ -36,7 +41,8 @@ def load_instances(f):
                     lemma_id = el.attrib['id']
                     sent_id = el.attrib['id'][0:9]
                     lemma = (el.attrib['lemma'])
-                    instances[lemma_id] = WSDInstance(lemma_id, sent_id, lemma, context, ind)
+                    no_synsets = len(wn.synsets(lemma))
+                    instances[lemma_id] = WSDInstance(lemma_id, sent_id, lemma, context, ind, no_synsets)
     return instances
 
 def get_labels(LABEL_FILE):
